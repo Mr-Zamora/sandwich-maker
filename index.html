@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mr Zamora's Sandwich Making Algorithm</title>
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --success-color: #2ecc71;
+            --error-color: #e74c3c;
+            --bg-color: #f5f6fa;
+            --step-bg: #ffffff;
+            --text-color: #2c3e50;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--primary-color);
+            margin-bottom: 2rem;
+            font-size: 2.5rem;
+            font-weight: 600;
+        }
+
+        .instructions {
+            text-align: center;
+            margin-bottom: 2rem;
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        #stepsContainer {
+            background: var(--step-bg);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+        }
+
+        .draggable-step {
+            background: var(--step-bg);
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+            border: 2px solid transparent;
+        }
+
+        .draggable-step:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .draggable-step.dragging {
+            opacity: 0.5;
+            background: #f8f9fa;
+        }
+
+        .step-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .step-number {
+            background: var(--primary-color);
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 1rem;
+            font-weight: bold;
+        }
+
+        .step-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-color);
+        }
+
+        .substeps-container {
+            padding-left: 3rem;
+        }
+
+        .draggable-substep {
+            background: #f8f9fa;
+            border-radius: 6px;
+            padding: 0.75rem;
+            margin: 0.5rem 0;
+            list-style: none;
+            transition: var(--transition);
+            border-left: 3px solid var(--primary-color);
+            cursor: move;
+        }
+
+        .draggable-substep:hover {
+            background: #fff;
+            transform: translateX(5px);
+        }
+
+        .draggable-substep.dragging {
+            opacity: 0.5;
+        }
+
+        .test-button {
+            display: block;
+            margin: 2rem auto;
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: white;
+            background: var(--primary-color);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .test-button:hover {
+            background: #357abd;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        .feedback {
+            text-align: center;
+            margin-top: 2rem;
+            padding: 1rem;
+            border-radius: 8px;
+            font-weight: 500;
+            opacity: 0;
+            transition: var(--transition);
+        }
+
+        .feedback.visible {
+            opacity: 1;
+        }
+
+        .feedback-success {
+            background: rgba(46, 204, 113, 0.1);
+            color: var(--success-color);
+        }
+
+        .feedback-partial {
+            background: rgba(241, 196, 15, 0.1);
+            color: #f1c40f;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            .draggable-step {
+                padding: 0.75rem;
+            }
+
+            .substeps-container {
+                padding-left: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Mr Zamora's Sandwich Making Algorithm</h1>
+        <p class="instructions">Drag and drop the steps and substeps into the correct order to make the perfect PB&J sandwich!</p>
+        
+        <button id="testButton" class="test-button">Check Your Order</button>
+        <div id="feedback" class="feedback"></div>
+
+        <div id="stepsContainer">
+            <!-- Steps will be dynamically added here -->
+        </div>
+
+        <button id="testButton" class="test-button">Check Your Order</button>
+        <div id="feedback" class="feedback"></div>
+    </div>
+
+    <script>
+        // Function to create check/cross icon SVG
+        function createIcon(type) {
+            const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+            svg.setAttribute("viewBox", "0 0 24 24");
+            svg.setAttribute("width", "20");
+            svg.setAttribute("height", "20");
+            svg.setAttribute("fill", "none");
+            svg.setAttribute("stroke", "currentColor");
+            svg.setAttribute("stroke-width", "2");
+            svg.setAttribute("stroke-linecap", "round");
+            svg.setAttribute("stroke-linejoin", "round");
+
+            let path;
+            if (type === 'check') {
+                // Checkmark path
+                path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                path.setAttribute("d", "M20 6L9 17l-5-5");
+            } else {
+                // Cross path (X)
+                path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                path.setAttribute("d", "M18 6L6 18M6 6l12 12");
+            }
+            svg.appendChild(path);
+            return svg;
+        }
+
+        // Function to shuffle an array (Fisher-Yates algorithm)
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        // Define the steps and their substeps
+        const steps = [
+            {
+                id: 1,
+                title: "Gather Ingredients and Tools",
+                substeps: [
+                    { id: 1, text: "Locate bread, place on clean surface" },
+                    { id: 2, text: "Unseal bread packaging" },
+                    { id: 3, text: "Remove two bread slices carefully" },
+                    { id: 4, text: "Arrange bread slices side by side" },
+                    { id: 5, text: "Get peanut butter jar" },
+                    { id: 6, text: "Get jelly jar" },
+                    { id: 7, text: "Get butter knife" }
+                ]
+            },
+            {
+                id: 2,
+                title: "Prepare the Peanut Butter",
+                substeps: [
+                    { id: 1, text: "Hold peanut butter jar" },
+                    { id: 2, text: "Grip jar lid firmly" },
+                    { id: 3, text: "Unscrew lid (counterclockwise)" },
+                    { id: 4, text: "Set lid aside" },
+                    { id: 5, text: "Hold knife in dominant hand" },
+                    { id: 6, text: "Scoop peanut butter with knife" },
+                    { id: 7, text: "Remove knife with peanut butter" }
+                ]
+            },
+            {
+                id: 3,
+                title: "Apply the Peanut Butter",
+                substeps: [
+                    { id: 1, text: "Hold bread slice steady" },
+                    { id: 2, text: "Place peanut butter on bread" },
+                    { id: 3, text: "Spread evenly with knife" },
+                    { id: 4, text: "Cover surface, avoid edges" },
+                    { id: 5, text: "Add more if needed" },
+                    { id: 6, text: "Set knife aside" }
+                ]
+            },
+            {
+                id: 4,
+                title: "Prepare the Jelly",
+                substeps: [
+                    { id: 1, text: "Hold jelly jar" },
+                    { id: 2, text: "Grip jar lid" },
+                    { id: 3, text: "Unscrew lid" },
+                    { id: 4, text: "Set lid aside" },
+                    { id: 5, text: "Hold jelly container" },
+                    { id: 6, text: "Get clean knife" },
+                    { id: 7, text: "Scoop jelly onto bread" }
+                ]
+            },
+            {
+                id: 5,
+                title: "Apply the Jelly",
+                substeps: [
+                    { id: 1, text: "Spread jelly evenly" },
+                    { id: 2, text: "Cover bread surface" },
+                    { id: 3, text: "Add more if needed" }
+                ]
+            },
+            {
+                id: 6,
+                title: "Assemble the Sandwich",
+                substeps: [
+                    { id: 1, text: "Lift peanut butter slice" },
+                    { id: 2, text: "Lift jelly slice" },
+                    { id: 3, text: "Combine slices" },
+                    { id: 4, text: "Align edges" },
+                    { id: 5, text: "Press gently" }
+                ]
+            },
+            {
+                id: 7,
+                title: "Final Touches",
+                substeps: [
+                    { id: 1, text: "Cut sandwich (optional)" },
+                    { id: 2, text: "Place on plate" },
+                    { id: 3, text: "Pick up sandwich" },
+                    { id: 4, text: "Enjoy!" }
+                ]
+            }
+        ];
+
+        // Shuffle steps and create UI
+        const shuffledSteps = shuffle(steps.slice());
+        const container = document.getElementById('stepsContainer');
+
+        // Variables for drag and drop
+        let draggedStep = null;
+        let draggedSubstep = null;
+
+        // Create and append steps
+        shuffledSteps.forEach((step, index) => {
+            const stepDiv = document.createElement('div');
+            stepDiv.className = 'draggable-step';
+            stepDiv.setAttribute('draggable', 'true');
+            stepDiv.id = `step-${step.id}`;
+            stepDiv.setAttribute('data-id', step.id);
+
+            // Create step header
+            const header = document.createElement('div');
+            header.className = 'step-header';
+            
+            const iconContainer = document.createElement('div');
+            iconContainer.className = 'step-number';
+            // Start with a neutral state (cross icon)
+            iconContainer.appendChild(createIcon('cross'));
+            
+            const title = document.createElement('div');
+            title.className = 'step-title';
+            title.textContent = step.title;
+
+            header.appendChild(iconContainer);
+            header.appendChild(title);
+            stepDiv.appendChild(header);
+
+            // Create substeps container
+            const substepsContainer = document.createElement('div');
+            substepsContainer.className = 'substeps-container';
+            
+            // Shuffle and create substeps
+            const shuffledSubsteps = shuffle(step.substeps.slice());
+            shuffledSubsteps.forEach(substep => {
+                const substepDiv = document.createElement('div');
+                substepDiv.className = 'draggable-substep';
+                substepDiv.setAttribute('draggable', 'true');
+                substepDiv.setAttribute('data-substep-id', substep.id);
+                substepDiv.textContent = substep.text;
+
+                // Add drag events for substeps
+                substepDiv.addEventListener('dragstart', e => {
+                    draggedSubstep = substepDiv;
+                    setTimeout(() => substepDiv.classList.add('dragging'), 0);
+                    e.stopPropagation();
+                });
+
+                substepDiv.addEventListener('dragend', e => {
+                    substepDiv.classList.remove('dragging');
+                    e.stopPropagation();
+                });
+
+                substepsContainer.appendChild(substepDiv);
+            });
+
+            stepDiv.appendChild(substepsContainer);
+
+            // Add drag events for main steps
+            stepDiv.addEventListener('dragstart', e => {
+                if (e.target.classList.contains('draggable-step')) {
+                    draggedStep = stepDiv;
+                    setTimeout(() => stepDiv.classList.add('dragging'), 0);
+                }
+            });
+
+            stepDiv.addEventListener('dragend', () => {
+                stepDiv.classList.remove('dragging');
+            });
+
+            stepDiv.addEventListener('dragover', e => {
+                e.preventDefault();
+                if (draggedSubstep && e.target.classList.contains('draggable-substep')) {
+                    const container = e.target.parentNode;
+                    const afterElement = getDragAfterElement(container, e.clientY);
+                    if (afterElement) {
+                        container.insertBefore(draggedSubstep, afterElement);
+                    } else {
+                        container.appendChild(draggedSubstep);
+                    }
+                } else if (draggedStep) {
+                    const container = stepDiv.parentNode;
+                    const afterElement = getDragAfterElement(container, e.clientY);
+                    if (afterElement) {
+                        container.insertBefore(draggedStep, afterElement);
+                    } else {
+                        container.appendChild(draggedStep);
+                    }
+                }
+            });
+
+            container.appendChild(stepDiv);
+        });
+
+        // Helper function to determine drag position
+        function getDragAfterElement(container, y) {
+            const draggableElements = [...container.querySelectorAll('.draggable-step:not(.dragging), .draggable-substep:not(.dragging)')];
+            
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+                
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset: offset, element: child };
+                } else {
+                    return closest;
+                }
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        }
+
+        // Test button functionality
+        document.getElementById('testButton').addEventListener('click', () => {
+            let mainStepsCorrect = 0;
+            let totalSubsteps = 0;
+            let substepsCorrect = 0;
+
+            // Check main steps
+            const mainSteps = container.getElementsByClassName('draggable-step');
+            Array.from(mainSteps).forEach((step, index) => {
+                const stepId = parseInt(step.getAttribute('data-id'));
+                const iconContainer = step.querySelector('.step-number');
+                iconContainer.innerHTML = ''; // Clear existing icon
+                
+                if (stepId === index + 1) {
+                    step.style.borderColor = 'var(--success-color)';
+                    iconContainer.style.background = 'var(--success-color)';
+                    iconContainer.appendChild(createIcon('check'));
+                    mainStepsCorrect++;
+                } else {
+                    step.style.borderColor = 'var(--error-color)';
+                    iconContainer.style.background = 'var(--error-color)';
+                    iconContainer.appendChild(createIcon('cross'));
+                }
+
+                // Check substeps
+                const substeps = step.getElementsByClassName('draggable-substep');
+                Array.from(substeps).forEach((substep, subIndex) => {
+                    totalSubsteps++;
+                    const substepId = parseInt(substep.getAttribute('data-substep-id'));
+                    if (substepId === subIndex + 1) {
+                        substep.style.borderLeftColor = 'var(--success-color)';
+                        substepsCorrect++;
+                    } else {
+                        substep.style.borderLeftColor = 'var(--error-color)';
+                    }
+                });
+            });
+
+            // Update feedback
+            const feedback = document.getElementById('feedback');
+            feedback.textContent = `Main Steps: ${mainStepsCorrect}/${mainSteps.length} correct\nSubsteps: ${substepsCorrect}/${totalSubsteps} correct`;
+            feedback.className = 'feedback visible';
+            
+            if (mainStepsCorrect === mainSteps.length && substepsCorrect === totalSubsteps) {
+                feedback.classList.add('feedback-success');
+            } else {
+                feedback.classList.add('feedback-partial');
+            }
+
+            // Animate feedback
+            feedback.style.animation = 'none';
+            feedback.offsetHeight; // Trigger reflow
+            feedback.style.animation = null;
+        });
+    </script>
+</body>
+</html>
